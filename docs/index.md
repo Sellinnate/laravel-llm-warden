@@ -1,11 +1,11 @@
 ---
 title: "Warden for Laravel"
 description: "Enterprise prompt sanitization & LLM guardrails for Laravel — deterministic-first, offline-by-default, EU-resident."
+image: "https://laravel-warden.selli.io/assets/images/banner.png"
+ogImage: "https://laravel-warden.selli.io/assets/images/banner.png"
 ---
 
-<p align="center">
-  <img src="/assets/images/banner.png" alt="LLM Warden for Laravel — AI guardrails & security" style="max-width:100%;border-radius:12px" />
-</p>
+![LLM Warden for Laravel — AI guardrails & security](/assets/images/banner.png)
 
 # Warden for Laravel
 

@@ -4,10 +4,12 @@
 
 # Warden for Laravel
 
-[![Tests](https://img.shields.io/github/actions/workflow/status/sellinnate/warden/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/sellinnate/warden/actions)
+[![Tests](https://img.shields.io/github/actions/workflow/status/Sellinnate/laravel-llm-warden/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Sellinnate/laravel-llm-warden/actions)
+[![Docs](https://img.shields.io/badge/docs-laravel--warden.selli.io-2563eb?style=flat-square)](https://laravel-warden.selli.io)
+[![PHP](https://img.shields.io/badge/PHP-8.3%2B-777bb4?style=flat-square)](https://php.net)
+[![Laravel](https://img.shields.io/badge/Laravel-12%20%7C%2013-ff2d20?style=flat-square)](https://laravel.com)
 [![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen?style=flat-square)](https://phpstan.org/)
-[![Latest Version](https://img.shields.io/packagist/v/sellinnate/warden.svg?style=flat-square)](https://packagist.org/packages/sellinnate/warden)
-[![License](https://img.shields.io/packagist/l/sellinnate/warden.svg?style=flat-square)](LICENSE.md)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE.md)
 
 **Enterprise prompt sanitization & LLM guardrails for Laravel — deterministic-first, offline-by-default, EU-resident.**
 
@@ -22,7 +24,7 @@ swappable AI drivers (moderation APIs, self-hosted classifiers, LLM-as-judge) fo
 semantic coverage when you want it. Zero mandatory dependencies beyond
 `illuminate/contracts`.
 
-> 📚 Full documentation: **https://laravel-warden.selli.io** (work in progress)
+> 📚 **Full documentation: [laravel-warden.selli.io](https://laravel-warden.selli.io)**
 
 ## Why Warden
 
@@ -67,11 +69,54 @@ $clean = Warden::sanitize($userPrompt)->sanitizedText;
 $safe = Warden::inspectOutput($llmResponse, vault: $verdict->vault)->sanitizedText;
 ```
 
-## Status
+## What it covers
 
-Warden is under active development following its technical specification. See the
-roadmap in the docs. The current foundation provides the full normalization
-pass, the Guard/Policy/Scanner architecture, and the public API surface.
+Anchored to the **OWASP Top 10 for LLM Applications (2025)**:
+
+| OWASP | Concern | Warden |
+|-------|---------|--------|
+| **LLM01** | Prompt Injection | `InjectionScanner` (+ retrieval guard for indirect injection) |
+| **LLM02** | Sensitive Information Disclosure | `PiiScanner` + `SecretScanner` (input & output) |
+| **LLM05** | Improper Output Handling | `MarkdownDefangScanner` + `FormatScanner` |
+| **LLM07** | System Prompt Leakage | `OutputLeakScanner` (canary + echo) |
+
+PII is **EU/Italy-first** with checksum-validated entities (Codice Fiscale incl.
+omocodia, Partita IVA, IBAN, credit cards). The reversible **Vault** lets you send
+de-identified text to the model and restore the user's real data in the answer.
+
+## Surfaces
+
+```php
+// Facade one-liners
+Warden::inspect($text); Warden::sanitize($text); Warden::inspectOutput($text, vault: $v);
+
+// Validation rules
+'prompt' => ['required', 'string', new NoPromptInjection],
+'bio'    => ['nullable', 'string', new NoPii],
+
+// HTTP middleware (scans nested fields, JSON-aware output)
+Route::post('/chat', ChatController::class)->middleware('warden:input,strict');
+
+// RAG / retrieval guard, fluent pipeline, custom policies, events, audit, cache…
+```
+
+## Documentation
+
+Full, exhaustive docs at **[laravel-warden.selli.io](https://laravel-warden.selli.io)**:
+
+- [Quick Start](https://laravel-warden.selli.io/getting-started/quick-start) ·
+  [Configuration](https://laravel-warden.selli.io/getting-started/configuration)
+- [Architecture](https://laravel-warden.selli.io/concepts/architecture) ·
+  [Normalization](https://laravel-warden.selli.io/concepts/normalization) ·
+  [Policies](https://laravel-warden.selli.io/concepts/policies)
+- Scanners: [Injection](https://laravel-warden.selli.io/scanners/injection) ·
+  [Secrets](https://laravel-warden.selli.io/scanners/secrets) ·
+  [PII](https://laravel-warden.selli.io/scanners/pii) ·
+  [NSFW](https://laravel-warden.selli.io/scanners/nsfw) ·
+  [Output](https://laravel-warden.selli.io/scanners/output)
+- [AI Drivers](https://laravel-warden.selli.io/drivers/overview) ·
+  [Vault round-trip](https://laravel-warden.selli.io/usage/vault) ·
+  [RAG guard](https://laravel-warden.selli.io/usage/rag)
 
 ## Testing
 
