@@ -21,8 +21,12 @@ final class PolicyRepository
     /** @var array<string, Policy> resolved cache */
     private array $resolved = [];
 
+    /**
+     * @param  array<string, FailMode>  $failModeOverrides  per-scanner fail-mode overrides from config
+     */
     public function __construct(
         private readonly string $default = 'balanced',
+        private readonly array $failModeOverrides = [],
     ) {}
 
     /**
@@ -64,12 +68,21 @@ final class PolicyRepository
             return $definition(new PolicyBuilder($name))->build();
         }
 
-        return match ($name) {
+        $policy = match ($name) {
             'strict' => $this->strict(),
             'balanced' => $this->balanced(),
             'permissive' => $this->permissive(),
             default => throw new WardenException("Unknown Warden policy [{$name}]."),
         };
+
+        // Apply config fail-mode overrides (warden.fail_mode) on top of the profile.
+        if ($this->failModeOverrides !== []) {
+            $policy = $policy->cloneWith(
+                failModes: array_merge($policy->failModes, $this->failModeOverrides),
+            );
+        }
+
+        return $policy;
     }
 
     private function strict(): Policy

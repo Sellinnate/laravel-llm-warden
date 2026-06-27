@@ -86,3 +86,26 @@ Vault single-pass restore isolation, byte-accurate secret/PII output redaction.
 
 **Verdict:** output layer sound after the three High fixes + reorder/trusted-span
 design. Cleared to build Phase 3.
+
+---
+
+## Phase 3 — AI Drivers & resilience (2026-06-27)
+
+Reviewer brief: judge prompt-injection, result parsing, category mapping,
+circuit-breaker logic, layered escalation, fail-policy integration, SSRF/secrets.
+
+| ID | Severity | Finding | Resolution |
+|----|----------|---------|------------|
+| H1 | High | `NsfwScanner` let a `DriverException` from a down moderation endpoint bubble up, discarding the already-computed deny-list detections → enabling a (down) driver under fail-open was worse than no driver. | **Fixed.** The `moderate()` call is wrapped in try/catch; on `DriverException` we keep the deny-list detections and raise a `moderation_unavailable` signal. Regression in `Phase3ReviewRegressionTest`. |
+| H2 | High | The provider's own `flagged=true` was ignored; `NsfwScanner` re-decided with one uniform threshold, so calibrated low-score flags (incl. sexual/minors) passed. | **Fixed.** `flagged` now floors risk to the threshold (hard block); S4 (CSAM) categories are hard-floored to 1.0. Regression test added. |
+| M1 | Medium | Circuit-breaker keys were static driver names → one BYOK tenant's bad key opened the circuit for all tenants. | **Fixed.** Breaker keys now include a hash of the endpoint+credentials. |
+| M2 | Medium | LLM-judge `<<<DATA … DATA>>>` fence not escaped → text could forge the closing marker. | **Fixed.** Literal fence markers in the user text are broken before fencing; the max-combine in `LayeredInjectionDriver` already prevented a gamed judge from lowering the deterministic verdict. Regression test added. |
+| M3 | Medium | `warden.fail_mode` config block was dead (never read). | **Fixed.** `PolicyRepository` now applies config fail-mode overrides on top of every profile. Regression test added. |
+| L1–L4 | Low | Parsing fails safe (over-blocks), no key/secret logging, timeouts present, category maps complete, breaker half-open behaviour acceptable. | **Accepted.** No action. |
+
+Verified sound: layered driver fails toward the deterministic floor, max-combine
+neutralises judge injection from lowering verdicts, crash-safe parsing, correct
+Guard↔failMode wiring, no SSRF (endpoints are operator config), no secret logging.
+
+**Verdict:** resilient architecture sound after H1/H2 (coverage-critical) + M1–M3
+fixes. Cleared to build Phase 4.

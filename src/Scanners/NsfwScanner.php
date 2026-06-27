@@ -7,6 +7,7 @@ namespace Sellinnate\Warden\Scanners;
 use Sellinnate\Warden\Contracts\Scanner;
 use Sellinnate\Warden\Enums\Action;
 use Sellinnate\Warden\Enums\Direction;
+use Sellinnate\Warden\Exceptions\DriverException;
 use Sellinnate\Warden\Managers\ModerationManager;
 use Sellinnate\Warden\Support\Redactor;
 use Sellinnate\Warden\Support\ScanContext;
@@ -41,19 +42,47 @@ final class NsfwScanner implements Scanner
     {
         $detections = $this->matchDenyList($context->normalized, $context->current);
 
-        // Optional moderation driver: merge its flagged categories (span-less).
-        $verdict = $this->moderation->driver()->moderate($context->current);
-        foreach ($verdict->categories as $category => $score) {
-            if ($score > 0.0) {
+        $threshold = $context->policy->threshold(self::NAME);
+        $action = $context->policy->action(self::NAME, Action::Block);
+
+        // Optional moderation driver: merge its categories. If the endpoint is
+        // down we degrade to the deny-list detections rather than discarding them
+        // (a moderation outage must never reduce coverage below the offline base).
+        try {
+            $verdict = $this->moderation->driver()->moderate($context->current);
+
+            foreach ($verdict->categories as $category => $score) {
+                if ($score <= 0.0) {
+                    continue;
+                }
+
+                // Child sexual exploitation (S4) is never acceptable: hard-floor.
+                $effective = $category === 'S4' ? 1.0 : min(1.0, $score);
+
                 $detections[] = new Detection(
                     type: 'NSFW_'.$category,
                     start: 0,
                     end: 0,
-                    score: min(1.0, $score),
+                    score: $effective,
                     scanner: self::NAME,
                     context: ['source' => $verdict->driver],
                 );
             }
+
+            // Honour the provider's own flag (it uses per-category calibration we
+            // can't reproduce with one threshold) by flooring risk to the threshold.
+            if ($verdict->flagged) {
+                $detections[] = new Detection(
+                    type: 'NSFW_FLAGGED',
+                    start: 0,
+                    end: 0,
+                    score: max($threshold, $verdict->maxScore()),
+                    scanner: self::NAME,
+                    context: ['source' => $verdict->driver, 'signal' => 'provider_flagged'],
+                );
+            }
+        } catch (DriverException $e) {
+            $context->addSignal('moderation_unavailable');
         }
 
         $risk = 0.0;
@@ -61,8 +90,6 @@ final class NsfwScanner implements Scanner
             $risk = max($risk, $d->score);
         }
 
-        $threshold = $context->policy->threshold(self::NAME);
-        $action = $context->policy->action(self::NAME, Action::Block);
         $flagged = $risk >= $threshold;
 
         $sanitized = $context->current;
