@@ -2,7 +2,7 @@
 
 All notable changes to `sellinnate/warden` will be documented in this file.
 
-## v1.0.0 — Unreleased
+## v1.0.0 — 2026-06-27
 
 Initial release. Enterprise prompt sanitization & LLM guardrails for Laravel —
 deterministic-first, offline-by-default, EU-resident.

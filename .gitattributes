@@ -9,6 +9,7 @@
 /art                export-ignore
 /docs               export-ignore
 /decisions          export-ignore
+/CLAUDE.md          export-ignore
 /docmd.config.json  export-ignore
 /package.json       export-ignore
 /SECURITY.md        export-ignore
