@@ -9,11 +9,13 @@ The `llm-judge` injection driver calls an OpenAI-compatible chat-completions
 endpoint with a hardened classifier prompt and structured JSON output. It catches
 the **semantic, paraphrased** jailbreaks the deterministic layer can't.
 
+In `config/warden.php`:
+
 ```php
 'injection' => [
     'driver' => 'llm-judge',
     'escalate_below' => 0.5,        // only escalate when deterministic is inconclusive
-    'prism' => [
+    'llm_judge' => [
         'key'      => env('OPENAI_API_KEY'),
         'model'    => 'gpt-4o-mini',
         'endpoint' => 'https://api.openai.com/v1/chat/completions',
@@ -21,6 +23,12 @@ the **semantic, paraphrased** jailbreaks the deterministic layer can't.
     ],
 ],
 ```
+
+::: callout tip "No Prism / SDK required"
+The `llm_judge` block just configures an OpenAI-compatible chat endpoint that
+Warden calls directly with Laravel's `Http` client (BYOK). You do **not** need to
+install Prism or any other LLM SDK for the judge to work.
+:::
 
 ## How it's wired
 

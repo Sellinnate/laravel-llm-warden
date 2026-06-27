@@ -35,9 +35,11 @@ Each scanner has a default action; the policy can override it.
 
 ```php
 use Sellinnate\Warden\Enums\Action;
+use Sellinnate\Warden\Facades\Warden;
+use Sellinnate\Warden\Policies\PolicyBuilder;
 
 // Roll out in "detect-only" mode first, then tighten.
-Warden::definePolicy('rollout', fn ($p) => $p->action('injection', Action::Detect));
+Warden::definePolicy('rollout', fn (PolicyBuilder $p) => $p->action('injection', Action::Detect));
 ```
 
 ## Custom policies

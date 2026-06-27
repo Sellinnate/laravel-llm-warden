@@ -74,6 +74,7 @@ Warden is anchored to the **OWASP Top 10 for LLM Applications (2025)**:
 
 ## Next steps
 
+- 🟢 **New to AI security? [What is Warden? (start here) →](/getting-started/what-is-warden)** — plain-language intro + glossary.
 - **[Installation →](/getting-started/installation)**
 - **[Quick Start →](/getting-started/quick-start)**
 - **[Architecture →](/concepts/architecture)**

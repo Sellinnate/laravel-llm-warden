@@ -52,6 +52,9 @@ Detections never store the raw secret — only a short masked fingerprint
 
 ## Add your own patterns
 
+Add organisation-specific secret formats in `config/warden.php` (merged with the
+built-ins):
+
 ```php
 'secret' => [
     'patterns' => [
@@ -60,8 +63,6 @@ Detections never store the raw secret — only a short masked fingerprint
 ],
 ```
 
-::: callout tip "Keep the ruleset fresh"
-Vendors rotate token formats. Validate against the live gitleaks ruleset before
-relying on exact lengths in production; the deny-list is versioned and updatable
-without a core release.
-:::
+Each entry needs a `type`, a `score` (0–1) and a `pattern` (a PCRE regex). An
+optional `group` (capture-group index) and `entropy => true` (only flag when the
+captured value has high Shannon entropy) are also supported.

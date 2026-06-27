@@ -34,6 +34,7 @@
       "icon": "rocket",
       "collapsible": true,
       "children": [
+        { "title": "What is Warden?", "path": "/getting-started/what-is-warden", "icon": "help-circle" },
         { "title": "Installation", "path": "/getting-started/installation", "icon": "download" },
         { "title": "Quick Start", "path": "/getting-started/quick-start", "icon": "zap" },
         { "title": "Configuration", "path": "/getting-started/configuration", "icon": "cog" }
@@ -98,16 +99,26 @@
       ]
     },
     {
+      "title": "Guides",
+      "icon": "book-open",
+      "collapsible": true,
+      "children": [
+        { "title": "Extending Warden", "path": "/guides/extending", "icon": "puzzle" },
+        { "title": "Troubleshooting & FAQ", "path": "/guides/troubleshooting", "icon": "life-buoy" }
+      ]
+    },
+    {
       "title": "Reference",
       "icon": "book",
       "collapsible": true,
       "children": [
         { "title": "Configuration Reference", "path": "/reference/config", "icon": "list" },
+        { "title": "Contracts & Value Objects", "path": "/reference/contracts", "icon": "file-code" },
         { "title": "OWASP LLM Coverage", "path": "/reference/owasp", "icon": "target" },
         { "title": "Security & Limitations", "path": "/reference/security", "icon": "alert-octagon" }
       ]
     },
-    { "title": "GitHub", "path": "https://github.com/sellinnate/warden", "icon": "github", "external": true }
+    { "title": "GitHub", "path": "https://github.com/Sellinnate/laravel-llm-warden", "icon": "github", "external": true }
   ],
   "plugins": {
     "seo": {

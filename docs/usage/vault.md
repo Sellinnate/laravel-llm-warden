@@ -19,7 +19,8 @@ use Sellinnate\Warden\Facades\Warden;
 $input = Warden::sanitize('Il mio CF è RSSMRA80A01H501U, mail mario@example.com');
 $input->sanitizedText; // "Il mio CF è <IT_FISCAL_CODE_1>, mail <EMAIL_ADDRESS_1>"
 
-// 2. The LLM works on de-identified text
+// 2. Send the de-identified text to your LLM (any client — see Quick Start).
+//    `$llm->chat(...)` here is a stand-in for your real LLM call.
 $reply = $llm->chat($input->sanitizedText);
 //   "Ho registrato il codice <IT_FISCAL_CODE_1> con email <EMAIL_ADDRESS_1>."
 

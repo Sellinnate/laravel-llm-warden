@@ -25,13 +25,18 @@ shapes (IP, bare local phone) **require a context word** so version strings
 (`1.2.3.4`) and order numbers don't false-positive.
 
 ```php
+use Sellinnate\Warden\Facades\Warden;
+
 $v = Warden::inspect('Il mio CF è RSSMRA80A01H501U');
 $v->hasDetectionType('IT_FISCAL_CODE'); // true
 ```
 
-::: callout tip "NER entities are driver-only"
-`PERSON` / `LOCATION` need a model, not regex. They are available via an optional
-NER driver (`warden.pii.ner_driver`), never by default.
+::: callout warning "Names and free-text are NOT detected"
+Warden detects only the regex/checksum entities listed above. Free-text entities
+like **person names, street addresses or company names** need a machine-learning
+model, not patterns, and are **not** included — do not rely on Warden to redact a
+person's name. If you need that, add a custom scanner (see
+**[Extending Warden](/guides/extending)**) backed by your own NER service.
 :::
 
 ## Operators

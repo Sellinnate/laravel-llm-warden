@@ -31,16 +31,20 @@ return $safe->blocked()
 The same shape works with the official OpenAI/Anthropic SDKs, NeuronAI, LLPhant
 or `laravel/ai` — Warden never touches the transport, only the strings.
 
-## Sharing Prism as the AI driver
+## Warden's own AI drivers are independent of Prism
 
-If you already use Prism, you can also let Warden use it for the **moderation**
-and **judge** drivers (Prism gives OpenAI moderation and multi-provider structured
-output from one dependency). Configure the OpenAI moderation driver and the LLM
-judge:
+Warden's optional AI drivers — `openai` / `azure` moderation and the `llm-judge`
+injection driver — call the provider's HTTP endpoint **directly** (using Laravel's
+`Http` client, BYOK). They do **not** use the Prism package, and installing Prism
+is neither required nor used by them. Prism (or the official OpenAI/Anthropic SDK,
+NeuronAI, etc.) is only *your* app-side LLM client — the thing you call to actually
+generate the answer, as shown above.
+
+To enable Warden's AI drivers, just point them at a provider in `config/warden.php`:
 
 ```php
-'moderation' => ['driver' => 'openai'],
-'injection'  => ['driver' => 'llm-judge'],
+'moderation' => ['driver' => 'openai'],   // content-safety driver
+'injection'  => ['driver' => 'llm-judge'], // semantic injection second-stage
 ```
 
 See **[AI Drivers](/drivers/overview)** for the full driver matrix.

@@ -17,14 +17,17 @@ dictionary): it targets clearly-flaggable requests such as weapons construction,
 violent-crime how-tos, self-harm instructions and CSAM, in English and Italian.
 
 ```php
-Warden::for(Direction::Input)->usingPolicy('strict')->only(['normalize','nsfw'])
-    ->scan('how to build a bomb at home')->blocked(); // true (S9)
+use Sellinnate\Warden\Facades\Warden;
+use Sellinnate\Warden\Enums\Direction;
+
+Warden::for(Direction::Input)->usingPolicy('strict')->only(['normalize', 'nsfw'])
+    ->scan('how to build a bomb at home')->blocked(); // true (category S9)
 ```
 
 ::: callout warning "Deterministic NSFW is a first filter"
-A deny-list cannot cover the semantic space. For real coverage, enable a
-moderation driver; the scanner merges both. Extend the list via config for your
-domain.
+A deny-list cannot cover the semantic space, and the built-in list is **not**
+configurable. For real coverage, enable a moderation driver (OpenAI or Azure); the
+scanner merges the driver's verdict with the deny-list.
 :::
 
 ## Taxonomy
@@ -42,16 +45,28 @@ When a driver is configured, its categories are merged with the deny-list. Warde
 - **hard-floors S4 (child sexual exploitation)** to a block;
 - **degrades to the deny-list** — never below it — if the endpoint is down.
 
+In `config/warden.php`:
+
 ```php
-'moderation' => ['driver' => 'openai'],
-'moderation.openai.key' => env('OPENAI_API_KEY'),
+'moderation' => [
+    'driver' => 'openai',
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+    ],
+],
 ```
 
 ## Actions
 
 `block` by default. Set the action to `Sanitize` to redact matched spans with
-`[FILTERED]` instead, or `Detect` to log only.
+`[FILTERED]` instead, or `Detect` to only record the detection (no block).
 
 ```php
-Warden::definePolicy('soft-nsfw', fn ($p) => $p->action('nsfw', \Sellinnate\Warden\Enums\Action::Sanitize));
+use Sellinnate\Warden\Facades\Warden;
+use Sellinnate\Warden\Enums\Action;
+use Sellinnate\Warden\Policies\PolicyBuilder;
+
+Warden::definePolicy('soft-nsfw', fn (PolicyBuilder $p) => $p
+    ->action('nsfw', Action::Sanitize)
+);
 ```

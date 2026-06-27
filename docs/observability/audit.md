@@ -31,10 +31,17 @@ The guardrail must never become a leak source. PII and secrets are **always**
 redacted in logs and events — detections carry only a masked fingerprint, never
 the raw value, and `store_raw=false` keeps the original text out of the sink.
 
-```php
-$record = AuditRecord::fromVerdict($verdict, Direction::Input)->toArray();
-// has 'text_hash', no 'raw'; the AWS key never appears in the record
-```
+Each audit record contains only:
+
+- `direction` — input / output / retrieval;
+- `valid` / `risk_score` / `severity` — the decision;
+- `detections` — a list of `{ type, scanner, score }` (no raw values);
+- `text_hash` — a non-reversible hash of the input (so you can correlate repeats
+  without storing the text).
+
+A blocked prompt containing an AWS key produces a record where the key never
+appears — only `{"type":"SECRET_AWS_ACCESS_KEY","scanner":"secret","score":0.97}`
+and the hash.
 
 ## GDPR & EU AI Act
 

@@ -23,8 +23,8 @@ produces a `ScanResult`, and passes the context on. Scanners exist for **input**
 
 ::: card "3 · Detector"
 The detection logic inside a scanner (e.g. the *Codice Fiscale* detector inside
-the `PiiScanner`). Separates *how you detect* (regex / checksum / NER / driver)
-from *what you do about it*.
+the `PiiScanner`). Separates *how you detect* (regex, checksum, …) from *what you
+do about it*.
 :::
 
 ::: card "4 · Driver"
@@ -73,14 +73,10 @@ defangs markdown exfiltration, checks content safety and validates format.
 ## Extensibility
 
 Everything pluggable passes through narrow contracts in
-`Sellinnate\Warden\Contracts`:
+`Sellinnate\Warden\Contracts` (`Scanner`, `Detector`, `InjectionDriver`,
+`ModerationDriver`, `Sanitizer`). You implement one of these and register it —
+never fork the package.
 
-```php
-interface Scanner { public function supports(Direction $d): bool; public function scan(ScanContext $c): ScanResult; public function name(): string; }
-interface Detector { public function detect(string $normalized, ScanContext $c): array; public function type(): string; }
-interface InjectionDriver { public function evaluate(string $normalized, ScanContext $c): InjectionVerdict; public function name(): string; }
-interface ModerationDriver { public function moderate(string $text): ModerationVerdict; public function name(): string; }
-```
-
-Adding a scanner is a registration on the `ScannerRegistry`; adding a driver is a
-`Manager::extend()` — never a fork.
+You only need these interfaces if you're **writing a custom scanner or driver**.
+For everyday use you never construct them yourself. The full step-by-step is in
+**[Extending Warden](/guides/extending)**.

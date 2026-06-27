@@ -21,10 +21,11 @@ return [
     'injection' => [
         'driver' => env('WARDEN_INJECTION_DRIVER', 'deterministic'), // deterministic | llm-judge
         'escalate_below' => 0.5,
-        'prism' => [
-            'key'      => env('OPENAI_API_KEY'),
-            'model'    => env('WARDEN_PRISM_MODEL', 'gpt-4o-mini'),
-            'endpoint' => 'https://api.openai.com/v1/chat/completions',
+        // Used only by the optional `llm-judge` driver (direct HTTP, BYOK, no Prism).
+        'llm_judge' => [
+            'key'      => env('WARDEN_LLM_JUDGE_KEY', env('OPENAI_API_KEY')),
+            'model'    => env('WARDEN_LLM_JUDGE_MODEL', 'gpt-4o-mini'),
+            'endpoint' => env('WARDEN_LLM_JUDGE_ENDPOINT', 'https://api.openai.com/v1/chat/completions'),
             'timeout'  => 8,
         ],
     ],
@@ -76,7 +77,6 @@ return [
             'default'        => ['op' => 'replace'],
         ],
         'hash_salt'  => env('WARDEN_PII_HASH_SALT', ''),
-        'ner_driver' => env('WARDEN_PII_NER'),
     ],
 
     // ── NSFW module ──────────────────────────────────────────────────────────

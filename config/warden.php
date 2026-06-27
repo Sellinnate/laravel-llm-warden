@@ -29,30 +29,21 @@ return [
     |--------------------------------------------------------------------------
     */
     'injection' => [
+        // deterministic (default, offline) | llm-judge (optional AI second stage)
         'driver' => env('WARDEN_INJECTION_DRIVER', 'deterministic'),
 
-        // For layered drivers (llm-judge): only escalate to the AI judge when the
-        // deterministic score is below this (cheap-first).
+        // llm-judge only: escalate to the AI judge only when the deterministic
+        // score is below this (cheap-first).
         'escalate_below' => 0.5,
 
-        'deterministic' => [
-            // Risk score added per matched signature, capped at 1.0.
-            'signal_weight' => 0.5,
-        ],
-
-        // Settings for external injection drivers (prompt-guard, prism-judge, lakera).
-        'prompt_guard' => [
-            'endpoint' => env('WARDEN_PROMPT_GUARD_ENDPOINT'),
-            'timeout' => 5,
-        ],
-        'prism' => [
-            'provider' => env('WARDEN_PRISM_PROVIDER', 'openai'),
-            'model' => env('WARDEN_PRISM_MODEL', 'gpt-4o-mini'),
-        ],
-        'lakera' => [
-            'key' => env('WARDEN_LAKERA_KEY'),
-            'endpoint' => env('WARDEN_LAKERA_ENDPOINT', 'https://api.lakera.ai/v2/guard'),
-            'timeout' => 5,
+        // Settings for the optional `llm-judge` driver. It calls an
+        // OpenAI-compatible chat-completions endpoint directly (BYOK) — no Prism
+        // or other SDK is required.
+        'llm_judge' => [
+            'key' => env('WARDEN_LLM_JUDGE_KEY', env('OPENAI_API_KEY')),
+            'model' => env('WARDEN_LLM_JUDGE_MODEL', 'gpt-4o-mini'),
+            'endpoint' => env('WARDEN_LLM_JUDGE_ENDPOINT', 'https://api.openai.com/v1/chat/completions'),
+            'timeout' => 8,
         ],
     ],
 
@@ -105,15 +96,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Injection module
-    |--------------------------------------------------------------------------
-    */
-    'injection_scanner' => [
-        'max_input_length' => 50_000,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
     | Secret module
     |--------------------------------------------------------------------------
     */
@@ -144,9 +126,6 @@ return [
 
         // Salt for the `hash` operator (referential integrity across requests).
         'hash_salt' => env('WARDEN_PII_HASH_SALT', ''),
-
-        // Optional NER driver for PERSON/LOCATION (null = regex/checksum only).
-        'ner_driver' => env('WARDEN_PII_NER'),
     ],
 
     /*

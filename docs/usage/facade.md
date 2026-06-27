@@ -42,8 +42,14 @@ $safe = Warden::inspectOutput($llmResponse, vault: $verdict->vault);
 Treat retrieved content as untrusted (indirect injection). See **[RAG](/usage/rag)**.
 
 ```php
+use Sellinnate\Warden\Facades\Warden;
+use Sellinnate\Warden\Guard;
+
 $verdict  = Warden::inspectRetrieval($chunkText);
-$verdicts = app(\Sellinnate\Warden\Guard::class)->inspectChunks($chunks);
+
+// inspectChunks() is the batch helper — it lives on the Guard instance, NOT on
+// the facade. Resolve the Guard from the container to use it.
+$verdicts = app(Guard::class)->inspectChunks($chunks);
 ```
 
 ## Custom policies

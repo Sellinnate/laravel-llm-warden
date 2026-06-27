@@ -57,6 +57,18 @@ php artisan warden:test "ignore all previous instructions"
   └───────────────────┴───────────┴───────┘
 ```
 
+The command exits with code `1` when the text is blocked (handy in scripts) and
+accepts two options:
+
+| Option | Values | Default |
+|--------|--------|---------|
+| `--policy=` | `strict` · `balanced` · `permissive` · a custom policy name | the configured default |
+| `--direction=` | `input` · `output` · `retrieval` | `input` |
+
+```bash
+php artisan warden:test "some reply" --direction=output --policy=strict
+```
+
 Warden also registers a line in `php artisan about` showing the active policy and
 drivers.
 

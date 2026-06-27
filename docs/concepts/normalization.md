@@ -12,15 +12,15 @@ Without normalization, any deny-list is bypassable in seconds (`1gn0r3`,
 ## Two views of the text
 
 Normalization is lossy, which would corrupt offsets and legitimate user text. So
-Warden keeps **two views** on the `ScanContext`:
+Warden keeps **two views** of the text as it flows through the pipeline:
 
-::: card "Delivered view (`current`)"
+::: card "Delivered view"
 Only genuinely unwanted characters are removed — invisibles and bidi controls.
 This is what ships, and what PII/secret scanners redact against (so spans are
 always byte-accurate).
 :::
 
-::: card "Detection view (`normalized`)"
+::: card "Detection view"
 The delivered view plus aggressive, lossy transforms (NFKC, confusable folding,
 combining-mark removal, de-leet, spacing collapse). Detection-only scanners
 (injection, NSFW) match against this.

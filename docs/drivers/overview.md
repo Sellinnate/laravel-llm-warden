@@ -49,9 +49,6 @@ infrastructure.
 
 ## Adding your own driver
 
-```php
-use Sellinnate\Warden\Facades\Warden; // or resolve the manager
-
-app(\Sellinnate\Warden\Managers\InjectionManager::class)
-    ->extend('my-driver', fn ($app) => new MyInjectionDriver());
-```
+You can plug in your own injection or moderation backend by implementing a small
+contract and registering it — no fork required. See the full step-by-step with
+runnable code in **[Extending Warden](/guides/extending)**.

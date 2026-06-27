@@ -34,7 +34,7 @@ final class InjectionManager extends Manager
     protected function createLlmJudgeDriver(): InjectionDriver
     {
         /** @var array<string, mixed> $config */
-        $config = (array) $this->config->get('warden.injection.prism', []);
+        $config = (array) $this->config->get('warden.injection.llm_judge', []);
 
         $judge = new LlmJudgeInjectionDriver(
             apiKey: (string) ($config['key'] ?? $this->config->get('warden.moderation.openai.key', '')),
