@@ -1,0 +1,117 @@
+{
+  "title": "Warden for Laravel",
+  "url": "https://laravel-warden.selli.io",
+  "src": "docs",
+  "out": "site",
+  "engine": "js",
+  "layout": {
+    "spa": true,
+    "header": { "enabled": true },
+    "sidebar": { "collapsible": true, "defaultCollapsed": false },
+    "optionsMenu": {
+      "position": "sidebar-top",
+      "components": { "search": true, "themeSwitch": true }
+    },
+    "footer": {
+      "style": "minimal",
+      "content": "© 2026 Sellinnate S.r.l. — Warden for Laravel (MIT).",
+      "branding": true
+    }
+  },
+  "theme": {
+    "name": "default",
+    "appearance": "dark",
+    "codeHighlight": true
+  },
+  "minify": true,
+  "autoTitleFromH1": true,
+  "copyCode": true,
+  "pageNavigation": true,
+  "navigation": [
+    { "title": "Introduction", "path": "/", "icon": "home" },
+    {
+      "title": "Getting Started",
+      "icon": "rocket",
+      "collapsible": true,
+      "children": [
+        { "title": "Installation", "path": "/getting-started/installation", "icon": "download" },
+        { "title": "Quick Start", "path": "/getting-started/quick-start", "icon": "zap" },
+        { "title": "Configuration", "path": "/getting-started/configuration", "icon": "cog" }
+      ]
+    },
+    {
+      "title": "Core Concepts",
+      "icon": "layers",
+      "collapsible": true,
+      "children": [
+        { "title": "Architecture", "path": "/concepts/architecture", "icon": "box" },
+        { "title": "Normalization", "path": "/concepts/normalization", "icon": "filter" },
+        { "title": "Policies", "path": "/concepts/policies", "icon": "sliders" },
+        { "title": "Verdicts & Detections", "path": "/concepts/verdicts", "icon": "check-circle" }
+      ]
+    },
+    {
+      "title": "Scanners",
+      "icon": "shield",
+      "collapsible": true,
+      "children": [
+        { "title": "Prompt Injection", "path": "/scanners/injection", "icon": "alert-triangle" },
+        { "title": "Secrets", "path": "/scanners/secrets", "icon": "key" },
+        { "title": "PII", "path": "/scanners/pii", "icon": "user" },
+        { "title": "NSFW / Content Safety", "path": "/scanners/nsfw", "icon": "eye-off" },
+        { "title": "Output Scanners", "path": "/scanners/output", "icon": "log-out" }
+      ]
+    },
+    {
+      "title": "Usage",
+      "icon": "code",
+      "collapsible": true,
+      "children": [
+        { "title": "Facade & One-liners", "path": "/usage/facade", "icon": "terminal" },
+        { "title": "Pipeline API", "path": "/usage/pipeline", "icon": "git-branch" },
+        { "title": "Validation Rules", "path": "/usage/validation", "icon": "check-square" },
+        { "title": "Middleware", "path": "/usage/middleware", "icon": "shield" },
+        { "title": "Vault Round-trip", "path": "/usage/vault", "icon": "lock" },
+        { "title": "RAG / Retrieval Guard", "path": "/usage/rag", "icon": "database" },
+        { "title": "Prism & laravel-ai", "path": "/usage/prism", "icon": "cpu" }
+      ]
+    },
+    {
+      "title": "AI Drivers",
+      "icon": "cpu",
+      "collapsible": true,
+      "children": [
+        { "title": "Overview", "path": "/drivers/overview", "icon": "git-merge" },
+        { "title": "Moderation (OpenAI / Azure)", "path": "/drivers/moderation", "icon": "cloud" },
+        { "title": "LLM Judge", "path": "/drivers/judge", "icon": "scale" },
+        { "title": "Resilience", "path": "/drivers/resilience", "icon": "activity" }
+      ]
+    },
+    {
+      "title": "Observability",
+      "icon": "bar-chart",
+      "collapsible": true,
+      "children": [
+        { "title": "Audit & Compliance", "path": "/observability/audit", "icon": "file-text" },
+        { "title": "Events", "path": "/observability/events", "icon": "radio" },
+        { "title": "Caching", "path": "/observability/caching", "icon": "zap" }
+      ]
+    },
+    {
+      "title": "Reference",
+      "icon": "book",
+      "collapsible": true,
+      "children": [
+        { "title": "Configuration Reference", "path": "/reference/config", "icon": "list" },
+        { "title": "OWASP LLM Coverage", "path": "/reference/owasp", "icon": "target" },
+        { "title": "Security & Limitations", "path": "/reference/security", "icon": "alert-octagon" }
+      ]
+    },
+    { "title": "GitHub", "path": "https://github.com/sellinnate/warden", "icon": "github", "external": true }
+  ],
+  "plugins": {
+    "seo": {
+      "defaultDescription": "Enterprise prompt sanitization & LLM guardrails for Laravel — deterministic-first, offline-by-default, EU-resident."
+    }
+  }
+}

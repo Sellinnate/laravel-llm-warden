@@ -80,6 +80,44 @@ final readonly class Verdict implements Arrayable, JsonSerializable
     }
 
     /**
+     * A cache-safe copy: drops the raw original text and any per-detection
+     * evidence, and (for blocked verdicts) the sanitized text — so a stored
+     * verdict never persists secrets/PII to the cache. The decision, scores and
+     * detection types are preserved.
+     */
+    public function forCache(): self
+    {
+        $results = [];
+        foreach ($this->results as $name => $result) {
+            $detections = array_map(
+                static fn (Detection $d): Detection => new Detection(
+                    $d->type, $d->start, $d->end, $d->score, $d->scanner, [],
+                ),
+                $result->detections,
+            );
+
+            $results[$name] = new ScanResult(
+                $result->scanner,
+                $result->valid,
+                $result->riskScore,
+                $this->valid ? $result->sanitizedText : '',
+                $detections,
+                $result->action,
+            );
+        }
+
+        return new self(
+            valid: $this->valid,
+            riskScore: $this->riskScore,
+            severity: $this->severity,
+            sanitizedText: $this->valid ? $this->sanitizedText : '',
+            originalText: '',
+            results: $results,
+            vault: null,
+        );
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="art/banner.png" alt="LLM Warden for Laravel — AI guardrails & security" width="100%">
+</p>
+
 # Warden for Laravel
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/sellinnate/warden/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/sellinnate/warden/actions)

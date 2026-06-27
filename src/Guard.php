@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace Sellinnate\Warden;
 
+use Illuminate\Config\Repository;
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
+use Sellinnate\Warden\Audit\NullAuditor;
+use Sellinnate\Warden\Contracts\Auditor;
 use Sellinnate\Warden\Enums\Direction;
 use Sellinnate\Warden\Enums\FailMode;
 use Sellinnate\Warden\Enums\Severity;
+use Sellinnate\Warden\Exceptions\WardenException;
 use Sellinnate\Warden\Policies\Policy;
 use Sellinnate\Warden\Policies\PolicyRepository;
 use Sellinnate\Warden\Support\PendingScan;
 use Sellinnate\Warden\Support\ScanContext;
 use Sellinnate\Warden\Support\ScannerRegistry;
 use Sellinnate\Warden\Support\Vault;
+use Sellinnate\Warden\Support\VerdictCache;
 use Sellinnate\Warden\ValueObjects\ScanResult;
 use Sellinnate\Warden\ValueObjects\Verdict;
 use Throwable;
@@ -25,12 +31,18 @@ use Throwable;
  */
 final class Guard
 {
+    private readonly Auditor $auditor;
+
     public function __construct(
         private readonly ScannerRegistry $scanners,
         private readonly PolicyRepository $policies,
         private readonly ?Dispatcher $events = null,
         private readonly int $maxInputBytes = 0,
-    ) {}
+        ?Auditor $auditor = null,
+        private readonly ?VerdictCache $cache = null,
+    ) {
+        $this->auditor = $auditor ?? new NullAuditor;
+    }
 
     /**
      * Inspect an input: run the full input pipeline and return a Verdict. The
@@ -69,6 +81,60 @@ final class Guard
     }
 
     /**
+     * Inspect a batch of retrieved chunks (RAG integration). Returns one Verdict
+     * per chunk; callers typically keep `$v->sanitizedText` for non-blocked chunks.
+     *
+     * @param  array<array-key, mixed>  $chunks  string chunks; non-strings are skipped
+     * @return array<array-key, Verdict>
+     */
+    public function inspectChunks(array $chunks, ?string $policy = null): array
+    {
+        $resolved = $this->policies->get($policy);
+        $verdicts = [];
+
+        foreach ($chunks as $key => $chunk) {
+            // Skip non-string elements (RAG metadata, nulls) so one bad chunk
+            // doesn't abort the whole batch.
+            if (is_string($chunk)) {
+                $verdicts[$key] = $this->run(Direction::Retrieval, $chunk, $resolved);
+            }
+        }
+
+        return $verdicts;
+    }
+
+    /**
+     * Build a self-contained Guard without a full Laravel application — for use
+     * in microservices or standalone jobs. Requires illuminate/container,
+     * illuminate/config and illuminate/support to be installed.
+     *
+     * @param  array<string, mixed>  $config  overrides merged over config/warden.php
+     */
+    public static function make(array $config = []): self
+    {
+        if (! class_exists(Container::class) || ! class_exists(Repository::class) || ! function_exists('env')) {
+            throw new WardenException(
+                'Guard::make() requires illuminate/container, illuminate/config and illuminate/support.',
+            );
+        }
+
+        $container = new Container;
+
+        /** @var array<string, mixed> $defaults */
+        $defaults = require dirname(__DIR__).'/config/warden.php';
+        $container->instance('config', new Repository([
+            'warden' => array_replace_recursive($defaults, $config),
+        ]));
+
+        WardenServiceProvider::registerBindings($container);
+
+        /** @var self $guard */
+        $guard = $container->make(self::class);
+
+        return $guard;
+    }
+
+    /**
      * Start a fluent, configured-at-call scan (Level 2 API).
      */
     public function for(Direction $direction): PendingScan
@@ -88,6 +154,23 @@ final class Guard
             // mb_strcut respects UTF-8 boundaries so we never split a code point.
             $text = mb_strcut($text, 0, $this->maxInputBytes, 'UTF-8');
             $truncated = true;
+        }
+
+        // Cache lookup (only when no caller-supplied Vault, to keep results shareable).
+        $cacheKey = null;
+        if ($this->cache !== null && $vault === null) {
+            $cacheKey = $this->cache->key($policy->name, $direction, $text);
+            $cached = $this->cache->get($cacheKey);
+            if ($cached !== null) {
+                // A cache hit still audits and emits events, so repeated payloads
+                // never go invisible to the audit log / SIEM / metrics.
+                $this->auditor->record($cached, $direction);
+                foreach ($cached->results as $result) {
+                    $this->dispatch($result, $direction);
+                }
+
+                return $cached;
+            }
         }
 
         $context = ScanContext::for($direction, $text, $policy, $vault);
@@ -114,7 +197,7 @@ final class Guard
             }
 
             $context->record($result);
-            $this->dispatch($result, $context);
+            $this->dispatch($result, $direction);
 
             if (! $result->valid && $policy->failFast) {
                 $context->shortCircuit();
@@ -122,7 +205,15 @@ final class Guard
             }
         }
 
-        return $this->aggregate($context);
+        $verdict = $this->aggregate($context);
+
+        $this->auditor->record($verdict, $direction);
+
+        if ($cacheKey !== null) {
+            $this->cache->put($cacheKey, $verdict);
+        }
+
+        return $verdict;
     }
 
     /**
@@ -171,13 +262,13 @@ final class Guard
         );
     }
 
-    private function dispatch(ScanResult $result, ScanContext $context): void
+    private function dispatch(ScanResult $result, Direction $direction): void
     {
         if ($this->events === null || ! $result->hasDetections()) {
             return;
         }
 
-        foreach (EventFactory::forScanResult($result, $context) as $event) {
+        foreach (EventFactory::forScanResult($result, $direction) as $event) {
             $this->events->dispatch($event);
         }
     }
