@@ -32,7 +32,6 @@ testbench.yaml
 TASKS.md
 
 # docmd documentation site build artifacts
-/docs-site/site
-/docs-site/node_modules
-/docs-site/.docmd
-/docs-site/package-lock.json
+/site
+/.docmd
+/package-lock.json

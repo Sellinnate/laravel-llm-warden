@@ -1,11 +1,12 @@
-# Warden — Internal Documentation
+# Warden — Internal Documentation (`decisions/`)
 
 This folder holds **implementation decisions** taken during development of
 `sellinnate/warden`, separate from the public documentation site (which lives in
-`docs-site/` and is built with docmd).
+the root `docs/` folder and is built with docmd → `laravel-warden.selli.io`).
 
-- [`decisions/`](decisions/) — Architecture Decision Records (ADRs) and a running
-  log of the aggressive adversarial reviews performed before each phase merge.
+- `0001`–`0005` — Architecture Decision Records (ADRs).
+- [`adversarial-reviews.md`](adversarial-reviews.md) — a running log of the
+  aggressive adversarial reviews performed before each phase merge.
 
 The authoritative product specification is
 `specifiche-tecniche-llm-guardrails.md` (outside this repo). The public ADR
@@ -22,4 +23,4 @@ merged to `main` only after:
 3. `vendor/bin/pint` — formatted;
 4. an **aggressive adversarial self-review** (a dedicated reviewer hunts for
    bypasses, ReDoS, correctness bugs); findings are fixed or explicitly accepted
-   and logged in [`decisions/adversarial-reviews.md`](decisions/adversarial-reviews.md).
+   and logged in [`adversarial-reviews.md`](adversarial-reviews.md).

@@ -53,4 +53,4 @@ a ReDoS) is in scope and very welcome. See `SECURITY.md` in the repository.
 Every release passes a matrix of `{ubuntu, windows} × {PHP 8.3, 8.4} × {Laravel
 12, 13} × {prefer-lowest, prefer-stable}`, PHPStan level 8, Pint, and a corpus
 with CI gates on recall and false-positive rate. Each development phase ships only
-after an aggressive adversarial self-review (recorded in `docs/decisions/`).
+after an aggressive adversarial self-review (recorded in `decisions/`).

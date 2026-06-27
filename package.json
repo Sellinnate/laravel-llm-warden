@@ -1,0 +1,20 @@
+{
+  "name": "laravel-llm-warden-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Documentation site for the sellinnate/warden Laravel package (built with docmd).",
+  "scripts": {
+    "docs:dev": "docmd dev",
+    "docs:build": "docmd build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sellinnate/laravel-llm-warden.git"
+  },
+  "license": "MIT",
+  "type": "commonjs",
+  "homepage": "https://laravel-warden.selli.io",
+  "dependencies": {
+    "@mgks/docmd": "^0.8.9"
+  }
+}

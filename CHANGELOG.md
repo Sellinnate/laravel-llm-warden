@@ -32,7 +32,7 @@ deterministic-first, offline-by-default, EU-resident.
 - **Policies**: `strict` / `balanced` / `permissive` profiles + custom builder.
 - **Observability**: redacted audit trail, verdict caching, i18n (it/en),
   `warden:install` / `warden:test` commands and an `about` section.
-- Full documentation site (docmd) and `docs/decisions/` ADRs + adversarial
+- Full documentation site (docmd) and `decisions/` ADRs + adversarial
   review log.
 
 ### Security

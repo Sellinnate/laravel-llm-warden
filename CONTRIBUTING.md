@@ -45,7 +45,7 @@ Warden is extensible without forking:
 - A **driver** implements `Contracts\InjectionDriver` / `Contracts\ModerationDriver`
   and is registered on the relevant manager via `extend()`.
 
-See `docs/decisions/` for the architecture decisions behind these seams.
+See `decisions/` for the architecture decisions behind these seams.
 
 ## Reporting security issues
 
