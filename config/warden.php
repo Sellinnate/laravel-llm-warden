@@ -129,7 +129,8 @@ return [
         'operators' => [
             'IT_FISCAL_CODE' => ['op' => 'encrypt'],
             'IT_VAT' => ['op' => 'replace'],
-            'IBAN' => ['op' => 'mask', 'from_end' => true, 'chars' => 8],
+            // Hide the account-number tail of the IBAN, reveal only the country/check head.
+            'IBAN' => ['op' => 'mask', 'from_end' => true, 'chars' => 18],
             'CREDIT_CARD' => ['op' => 'mask', 'from_end' => true, 'chars' => 12],
             'EMAIL_ADDRESS' => ['op' => 'replace'],
             'PHONE_NUMBER' => ['op' => 'replace'],

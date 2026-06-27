@@ -77,7 +77,7 @@ final class PolicyRepository
         return new Policy(
             name: 'strict',
             inputScanners: ['normalize', 'injection', 'secret', 'pii', 'nsfw'],
-            outputScanners: ['deanonymize', 'output-leak', 'markdown-defang', 'nsfw', 'format'],
+            outputScanners: ['normalize', 'deanonymize', 'output-leak', 'secret', 'pii', 'markdown-defang', 'nsfw', 'format'],
             retrievalScanners: ['normalize', 'injection', 'secret', 'pii'],
             thresholds: ['injection' => 0.5, 'nsfw' => 0.4],
             actions: [],
@@ -93,7 +93,7 @@ final class PolicyRepository
         return new Policy(
             name: 'balanced',
             inputScanners: ['normalize', 'injection', 'secret', 'pii', 'nsfw'],
-            outputScanners: ['deanonymize', 'output-leak', 'markdown-defang', 'nsfw', 'format'],
+            outputScanners: ['normalize', 'deanonymize', 'output-leak', 'secret', 'pii', 'markdown-defang', 'nsfw', 'format'],
             retrievalScanners: ['normalize', 'injection', 'secret', 'pii'],
             thresholds: ['injection' => 0.7, 'nsfw' => 0.6],
             actions: [],
@@ -109,7 +109,7 @@ final class PolicyRepository
         return new Policy(
             name: 'permissive',
             inputScanners: ['normalize', 'injection', 'secret', 'pii', 'nsfw'],
-            outputScanners: ['deanonymize', 'output-leak', 'markdown-defang', 'format'],
+            outputScanners: ['normalize', 'deanonymize', 'output-leak', 'secret', 'markdown-defang', 'format'],
             retrievalScanners: ['normalize', 'injection'],
             thresholds: ['injection' => 0.85, 'nsfw' => 0.85],
             // Permissive: only hard-block secrets; everything else only sanitizes/detects.
