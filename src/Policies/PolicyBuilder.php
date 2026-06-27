@@ -24,7 +24,7 @@ final class PolicyBuilder
     private array $inputScanners = ['normalize', 'injection', 'secret', 'pii', 'nsfw'];
 
     /** @var array<int, string> */
-    private array $outputScanners = ['deanonymize', 'output-leak', 'markdown-defang', 'nsfw', 'format'];
+    private array $outputScanners = ['normalize', 'deanonymize', 'output-leak', 'secret', 'pii', 'markdown-defang', 'nsfw', 'format'];
 
     /** @var array<int, string> */
     private array $retrievalScanners = ['normalize', 'injection', 'secret', 'pii'];

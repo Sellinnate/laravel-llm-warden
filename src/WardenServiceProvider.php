@@ -8,10 +8,23 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
+use Sellinnate\Warden\Detectors\Pii\DefaultDetectors;
+use Sellinnate\Warden\Detectors\Pii\PiiAnalyzer;
+use Sellinnate\Warden\Detectors\Pii\PiiAnonymizer;
+use Sellinnate\Warden\Http\Middleware\WardenMiddleware;
+use Sellinnate\Warden\Managers\InjectionManager;
+use Sellinnate\Warden\Managers\ModerationManager;
 use Sellinnate\Warden\Policies\PolicyRepository;
+use Sellinnate\Warden\Scanners\InjectionScanner;
 use Sellinnate\Warden\Scanners\NormalizeScanner;
+use Sellinnate\Warden\Scanners\NsfwScanner;
+use Sellinnate\Warden\Scanners\PiiScanner;
+use Sellinnate\Warden\Scanners\SecretScanner;
 use Sellinnate\Warden\Support\ScannerRegistry;
+use Sellinnate\Warden\ValueObjects\Verdict;
 
 final class WardenServiceProvider extends ServiceProvider
 {
@@ -23,6 +36,10 @@ final class WardenServiceProvider extends ServiceProvider
      */
     private const SCANNERS = [
         'normalize' => NormalizeScanner::class,
+        'injection' => InjectionScanner::class,
+        'secret' => SecretScanner::class,
+        'pii' => PiiScanner::class,
+        'nsfw' => NsfwScanner::class,
     ];
 
     public function register(): void
@@ -48,6 +65,26 @@ final class WardenServiceProvider extends ServiceProvider
             return $registry;
         });
 
+        $this->app->singleton(
+            InjectionManager::class,
+            static fn (Container $app): InjectionManager => new InjectionManager($app),
+        );
+
+        $this->app->singleton(
+            ModerationManager::class,
+            static fn (Container $app): ModerationManager => new ModerationManager($app),
+        );
+
+        $this->app->singleton(NsfwScanner::class, function (Container $app): NsfwScanner {
+            /** @var array<int, array{category: string, label: string, score: float, patterns: array<int, string>}> $signatures */
+            $signatures = require __DIR__.'/../resources/denylists/nsfw.php';
+
+            return new NsfwScanner(
+                $signatures,
+                $app->make(ModerationManager::class),
+            );
+        });
+
         $this->app->singleton(NormalizeScanner::class, function (Container $app): NormalizeScanner {
             /** @var Repository $config */
             $config = $app->make('config');
@@ -56,6 +93,42 @@ final class WardenServiceProvider extends ServiceProvider
             $normalizeConfig = (array) $config->get('warden.normalize', []);
 
             return new NormalizeScanner($normalizeConfig);
+        });
+
+        $this->app->singleton(SecretScanner::class, function (Container $app): SecretScanner {
+            /** @var Repository $config */
+            $config = $app->make('config');
+
+            /** @var array<int, array{type: string, score: float, pattern: string, group?: int, entropy?: bool}> $patterns */
+            $patterns = require __DIR__.'/../resources/denylists/secrets.php';
+
+            /** @var array<int, array{type: string, score: float, pattern: string, group?: int, entropy?: bool}> $custom */
+            $custom = (array) $config->get('warden.secret.patterns', []);
+
+            return new SecretScanner(
+                array_merge($patterns, $custom),
+                (float) $config->get('warden.secret.entropy_threshold', 3.5),
+            );
+        });
+
+        $this->app->singleton(PiiScanner::class, function (Container $app): PiiScanner {
+            /** @var Repository $config */
+            $config = $app->make('config');
+
+            $locale = (string) $config->get('warden.pii.locale', 'it');
+
+            /** @var array<string, array<string, mixed>> $operators */
+            $operators = (array) $config->get('warden.pii.operators', []);
+
+            return new PiiScanner(
+                new PiiAnalyzer(
+                    DefaultDetectors::for($locale),
+                ),
+                new PiiAnonymizer(
+                    (string) $config->get('warden.pii.hash_salt', ''),
+                ),
+                $operators,
+            );
         });
 
         $this->app->singleton(Guard::class, function (Container $app): Guard {
@@ -86,6 +159,33 @@ final class WardenServiceProvider extends ServiceProvider
         }
 
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'warden');
+
+        $this->registerMiddleware();
+        $this->registerRequestMacro();
+    }
+
+    private function registerMiddleware(): void
+    {
+        if ($this->app->bound('router')) {
+            /** @var Router $router */
+            $router = $this->app->make('router');
+            $router->aliasMiddleware('warden', WardenMiddleware::class);
+        }
+    }
+
+    private function registerRequestMacro(): void
+    {
+        Request::macro('wardenVerdict', function (?string $field = null) {
+            /** @var Request $this */
+            /** @var array<string, Verdict> $verdicts */
+            $verdicts = $this->attributes->get('warden', []);
+
+            if ($field !== null) {
+                return $verdicts[$field] ?? null;
+            }
+
+            return $verdicts;
+        });
     }
 
     private function configPath(string $path): string

@@ -29,3 +29,33 @@ fallbacks, `mb_check_encoding` guard), fail-open/closed wiring correct.
 
 **Verdict:** foundation sound after C1/H1/H2/H3/M1/M2 fixes. Cleared to build
 Phase 1.
+
+---
+
+## Phase 1 — Deterministic MVP (2026-06-27)
+
+Reviewer brief: detection bypasses, redaction correctness, checksum correctness,
+ReDoS, false positives that block legit traffic, middleware coverage, entropy
+gate. Findings and resolutions:
+
+| ID | Severity | Finding | Resolution |
+|----|----------|---------|------------|
+| H1 | High | Quadratic ReDoS in the EMAIL detector (`a.a.a…@` → 0.77s at the 50 KB default cap; CPU DoS). | **Fixed.** RFC-bounded lengths (`{1,64}@{1,63}(\.{1,63})*\.{2,24}`) make matching linear (4ms on the same input). Regression in `Phase1ReviewRegressionTest`. |
+| H2 | High | Middleware only scanned top-level string fields → the OpenAI `messages[]` nested shape was completely unprotected. | **Fixed.** `WardenMiddleware` now recurses into arrays (dot-path keys) on input and JSON output. Regression: nested middleware test. |
+| H3 | High | A base64-encoded secret was detected on output but its zero-length detection produced no redaction under `Sanitize` → the encoded secret shipped. | **Fixed.** Any unredactable (zero-length) secret detection forces a block even under a Sanitize policy. Regression in review test. |
+| M1 | Medium | Entropy gate (3.5) lets low-entropy hex/numeric secrets through the generic catch-all. | **Accepted/noted.** The prefixed high-signal patterns cover the real vendor tokens; the generic catch-all is a best-effort net. Threshold is configurable. Tracked for length-aware tuning. |
+| M2 | Medium | INSTRUCTION_OVERRIDE was word-order brittle ("ignore the instructions you were given earlier" passed). | **Fixed.** Added noun-first ordering branch + "from now on you have no restrictions" (EN+IT). Regression in review test; corpus recall still 100%. |
+| M3 | Medium | IP/version strings ("1.2.3.4") and bare numbers flagged as PII → `NoPii` rule 422s on benign input. | **Fixed.** Added `requireContext` to `RegexDetector`; IP and bare local phone now require a nearby context word. `+39` phones and contextual IPs still caught. Regression in review test. |
+| M4 | Medium | Output middleware treated the serialized response body as opaque text. | **Fixed.** JSON-aware output: decode → scan each string value → re-encode; sets `Content-Type` on block. |
+| M5 | Medium | `hash` operator: 64-bit truncation + empty default salt → reversible PII. | **Fixed.** Switched to HMAC-SHA256 (128-bit) and throws if the salt is empty. Regression in review test. |
+| L1 | Low | IBAN mask config revealed too much of the account number. | **Fixed.** Bumped `chars` 8 → 18 to mask the account tail. |
+| L2 | Low | `Redactor` could split a UTF-8 codepoint for a future mis-aligned span. | **Fixed.** Added a codepoint-boundary guard that skips mid-sequence spans. |
+| L3 | Low | Partial (non-containment) overlapping detections: `Redactor` skips one, leaving it un-redacted. | **Accepted for Phase 1.** Not reachable with the default detector set (they don't produce partial non-containment overlaps). Tracked: merge partial overlaps before redaction. |
+| L4 | Low | Future Vault de-anonymization oracle via user-injected `<TYPE_N>`. | **Tracked for Phase 2** (DeanonymizeScanner): restore only placeholders this request minted. |
+
+Verified correct by the reviewer: all four checksums (CF incl. omocodia, P.IVA,
+IBAN mod-97, Luhn), no backtracking in injection/secret/nsfw patterns, byte-
+accurate redaction, normalization interplay, encoded-secret-on-input blocking.
+
+**Verdict:** deterministic core sound after the three High fixes + Mediums.
+Cleared to build Phase 2.
