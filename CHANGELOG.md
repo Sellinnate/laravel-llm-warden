@@ -2,6 +2,24 @@
 
 All notable changes to `sellinnate/warden` will be documented in this file.
 
+## v1.0.0 — Warden for Laravel - 2026-06-27
+
+First stable release. **Enterprise prompt sanitization & LLM guardrails for Laravel** — deterministic-first, offline-by-default, EU-resident.
+
+📚 Docs: https://laravel-warden.selli.io · 📦 `composer require sellinnate/warden`
+
+### Highlights
+
+- **Bidirectional guardrail**: input (prompt injection/jailbreak, secrets, PII, NSFW) and output (system-prompt leak, PII/secret leak, markdown exfiltration, JSON format).
+- **Deterministic-first, offline-by-default**: a normalization pass (NFKC, confusables, invisibles/bidi, de-leet, spacing, recursive base64/hex decode) + rule/heuristic scanners, with **zero mandatory dependencies beyond `illuminate/contracts`** and no network calls.
+- **EU/Italy-first PII** with checksum validation (Codice Fiscale incl. omocodia, Partita IVA, IBAN, Luhn) and a reversible **Vault** round-trip.
+- **Optional AI drivers** (OpenAI/Azure moderation, layered LLM-as-judge) — BYOK, circuit-broken, fail-policy aware; coverage never drops below the offline baseline.
+- Full public API: facade, fluent pipeline, validation rules, HTTP middleware, events, audit trail, caching, Artisan commands, framework-agnostic `Guard::make()`.
+
+Anchored to the OWASP Top 10 for LLM Applications (2025): LLM01, LLM02, LLM05, LLM07.
+
+219 tests · PHPStan level 8 · PHP 8.3/8.4 · Laravel 12/13.
+
 ## v1.0.0 — 2026-06-27
 
 Initial release. Enterprise prompt sanitization & LLM guardrails for Laravel —
