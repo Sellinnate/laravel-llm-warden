@@ -43,7 +43,10 @@ final class SecretScanner implements Scanner
 
     public function scan(ScanContext $context): ScanResult
     {
-        $detections = $this->detect($context->current);
+        $detections = array_values(array_filter(
+            $this->detect($context->current),
+            static fn ($d): bool => ! $context->isTrustedSpan($d->start, $d->end),
+        ));
 
         // Detection-only pass over decoded payloads (obfuscated secrets). These
         // get a zero-length span so they force a block but are never "redacted".

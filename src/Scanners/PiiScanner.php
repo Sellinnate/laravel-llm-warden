@@ -42,7 +42,10 @@ final class PiiScanner implements Scanner
 
     public function scan(ScanContext $context): ScanResult
     {
-        $detections = $this->analyzer->analyze($context->current, $context);
+        $detections = array_values(array_filter(
+            $this->analyzer->analyze($context->current, $context),
+            static fn ($d): bool => ! $context->isTrustedSpan($d->start, $d->end),
+        ));
 
         $action = $context->policy->action(self::NAME, Action::Sanitize);
 

@@ -40,6 +40,14 @@ final class ScanContext
      */
     public array $decodedPayloads = [];
 
+    /**
+     * Byte spans of de-anonymized (restored) values in {@see $current}. These are
+     * the user's own data and must not be re-redacted by PII/secret scanners.
+     *
+     * @var array<int, array{0: int, 1: int}>
+     */
+    public array $trustedSpans = [];
+
     private bool $shortCircuited = false;
 
     public function __construct(
@@ -99,5 +107,19 @@ final class ScanContext
     public function signal(string $key, mixed $default = null): mixed
     {
         return $this->signals[$key] ?? $default;
+    }
+
+    /**
+     * True if [$start, $end) lies entirely within a trusted (restored) span.
+     */
+    public function isTrustedSpan(int $start, int $end): bool
+    {
+        foreach ($this->trustedSpans as [$s, $e]) {
+            if ($start >= $s && $end <= $e) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

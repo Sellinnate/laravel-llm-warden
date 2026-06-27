@@ -59,3 +59,30 @@ accurate redaction, normalization interplay, encoded-secret-on-input blocking.
 
 **Verdict:** deterministic core sound after the three High fixes + Mediums.
 Cleared to build Phase 2.
+
+---
+
+## Phase 2 — Output & Vault (2026-06-27)
+
+Reviewer brief: markdown-defang bypasses, deanonymize ordering/leak, canary
+evasion, FormatScanner state machine, output pipeline correctness.
+
+| ID | Severity | Finding | Resolution |
+|----|----------|---------|------------|
+| H1 | High | Protocol-relative image URL (`![x](//evil/x.png)`) classified as a harmless relative URL → shipped active. | **Fixed.** `isAllowed()` now rejects `//`-prefixed URLs before the relative short-circuit. Regression in `Phase2ReviewRegressionTest`. |
+| H2 | High | Reference-style images/links (`![x][1]` + `[1]: http://evil`) entirely unhandled → auto-loading image shipped. | **Fixed.** Added a reference-definition pass that neutralizes off-domain definition URLs. |
+| H3 | High | Raw HTML `<img>`/`<a>` and angle-bracket autolinks unhandled (LLM output is rendered as markdown+HTML). | **Fixed.** Added HTML img/anchor and autolink passes. Class docblock now scopes it as a defensive transform, not a full HTML sanitizer. |
+| M4 | Medium | Escaped `\]` in alt/text defeated the capture. | **Fixed.** Alt/text now matches `(?:[^\]\\]|\\.)*` (escape-aware). |
+| M5 | Medium | `deanonymize` ran LAST → a restored value containing markdown re-introduced an active URL after defang. | **Fixed.** Reordered `deanonymize` to run early (after normalize); restored regions are marked **trusted spans** so output PII/secret scanners skip them, while defang/format still process the restored text. |
+| M6 | Medium | `deanonymize` after `format` could inject quotes into certified-valid JSON. | **Fixed** by the same reorder (format now runs after deanonymize). |
+| M7 | Medium | Canary/system-prompt-echo checked `current`; a whitespace-split canary leaked undetected. | **Fixed.** Both checks now compare whitespace-stripped copies. Regression test added. |
+| L8 | Low | `requireJson` accepted bare scalars (`5`, `true`) as valid. | **Fixed.** Requires an object/array root. |
+| L9 | Low | Bidi-control stripping on output can mis-render legitimate RTL text. | **Accepted/documented.** Security (Trojan-source defence) is prioritised; configurable via `normalize.strip_bidi`. |
+
+Verified sound by the reviewer: allow-list subdomain matching (no
+`evil-trusted.test` / `trusted.test.evil.com` / `user@host` bypass), `data:`/
+`mailto:` defanged, FormatScanner JSON state machine (strings/escapes, no ReDoS),
+Vault single-pass restore isolation, byte-accurate secret/PII output redaction.
+
+**Verdict:** output layer sound after the three High fixes + reorder/trusted-span
+design. Cleared to build Phase 3.

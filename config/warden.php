@@ -164,6 +164,10 @@ return [
         'allowed_domains' => [],
         // System-prompt canary token to detect leakage (set per-request ideally).
         'canary' => env('WARDEN_CANARY'),
+        // Optional system prompt: a verbatim echo of a long slice is flagged as a leak.
+        'system_prompt' => env('WARDEN_SYSTEM_PROMPT'),
+        // Require the LLM output to be valid JSON (FormatScanner): validate + repair.
+        'require_json' => env('WARDEN_REQUIRE_JSON', false),
     ],
 
     /*
