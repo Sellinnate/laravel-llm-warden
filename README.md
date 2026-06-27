@@ -1,93 +1,91 @@
-# :package_description
+# Warden for Laravel
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-[![GitHub Tests Action Status](https://github.com/spatie/package-skeleton-laravel/actions/workflows/run-tests.yml/badge.svg)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://github.com/spatie/package-skeleton-laravel/actions/workflows/fix-php-code-style-issues.yml/badge.svg)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-<!--delete-->
----
-This repo can be used to scaffold a Laravel package. Follow these steps to get started:
+[![Tests](https://img.shields.io/github/actions/workflow/status/sellinnate/warden/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/sellinnate/warden/actions)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen?style=flat-square)](https://phpstan.org/)
+[![Latest Version](https://img.shields.io/packagist/v/sellinnate/warden.svg?style=flat-square)](https://packagist.org/packages/sellinnate/warden)
+[![License](https://img.shields.io/packagist/l/sellinnate/warden.svg?style=flat-square)](LICENSE.md)
 
-1. Press the "Use this template" button at the top of this repo to create a new repo with the contents of this skeleton.
-2. Run "php ./configure.php" to run a script that will replace all placeholders throughout all the files.
-3. Have fun creating your package.
-4. If you need help creating a package, consider picking up our <a href="https://laravelpackage.training">Laravel Package Training</a> video course.
----
-<!--/delete-->
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+**Enterprise prompt sanitization & LLM guardrails for Laravel — deterministic-first, offline-by-default, EU-resident.**
 
-## Support us
+Warden sits between your application and any LLM as a **bidirectional guardrail
+layer**. On the way in it normalises and inspects prompts (prompt injection,
+jailbreak, PII, secrets); on the way out it validates and filters the model's
+response (unsafe content, data leaks, markdown exfiltration, malformed output).
 
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/:package_name.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/:package_name)
+It is **hybrid and modular**: a deterministic core (regex, deny-lists,
+heuristics, Unicode normalization) that runs offline at zero cost, plus optional,
+swappable AI drivers (moderation APIs, self-hosted classifiers, LLM-as-judge) for
+semantic coverage when you want it. Zero mandatory dependencies beyond
+`illuminate/contracts`.
 
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
+> 📚 Full documentation: **https://laravel-warden.selli.io** (work in progress)
 
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+## Why Warden
+
+- **Deterministic-first.** The rule layer is fast (p95 < 5 ms), free, explainable
+  and fully testable. AI drivers are a second stage, never a prerequisite.
+- **Normalize before every check.** A single pass (NFKC, confusable folding,
+  invisible/bidi stripping, de-leet, spacing collapse, recursive base64/hex
+  decode) precedes every detector — so deny-lists can't be trivially bypassed.
+- **Find vs. act are separate.** Detectors return typed spans; the action
+  (allow / redact / mask / encrypt / block / flag) is a *policy* decision.
+- **EU/Italy aware.** Codice Fiscale, P.IVA, IBAN with checksum validation;
+  GDPR / EU AI Act friendly; nothing leaves your infrastructure by default.
 
 ## Installation
 
-You can install the package via composer:
-
 ```bash
-composer require :vendor_slug/:package_slug
+composer require sellinnate/warden
 ```
 
-You can publish and run the migrations with:
+Publish the config (optional):
 
 ```bash
-php artisan vendor:publish --tag=":package_slug-migrations"
-php artisan migrate
+php artisan vendor:publish --tag=warden-config
 ```
 
-You can publish the config file with:
-
-```bash
-php artisan vendor:publish --tag=":package_slug-config"
-```
-
-This is the contents of the published config file:
+## Quick start
 
 ```php
-return [
-];
+use Sellinnate\Warden\Facades\Warden;
+
+// Inspect only — returns a Verdict, mutates nothing
+$verdict = Warden::inspect($userPrompt);
+
+if ($verdict->blocked()) {
+    abort(422, 'Prompt not allowed.');
+}
+
+// Sanitize — returns the Verdict with cleaned text ready for the LLM
+$clean = Warden::sanitize($userPrompt)->sanitizedText;
+
+// Inspect the LLM output, restoring pseudonymized values from the Vault
+$safe = Warden::inspectOutput($llmResponse, vault: $verdict->vault)->sanitizedText;
 ```
 
-Optionally, you can publish the views using
+## Status
 
-```bash
-php artisan vendor:publish --tag=":package_slug-views"
-```
-
-## Usage
-
-```php
-$:variable = new VendorName\Skeleton();
-echo $:variable->echoPhrase('Hello, VendorName!');
-```
+Warden is under active development following its technical specification. See the
+roadmap in the docs. The current foundation provides the full normalization
+pass, the Guard/Policy/Scanner architecture, and the public API surface.
 
 ## Testing
 
 ```bash
-composer test
+composer test        # Pest
+composer analyse     # PHPStan level 8
+composer format      # Pint
 ```
 
-## Changelog
+## Security
 
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
-
-## Contributing
-
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
+If you discover a security vulnerability, please review [SECURITY.md](SECURITY.md)
+for the responsible-disclosure process. Do **not** open a public issue.
 
 ## Credits
 
-- [:author_name](https://github.com/:author_username)
-- [All Contributors](../../contributors)
+- [Filippo Calabrese](https://github.com/sellinnate) and Sellinnate S.r.l.
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT License (MIT). See [LICENSE.md](LICENSE.md).

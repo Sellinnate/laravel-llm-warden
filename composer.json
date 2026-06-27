@@ -1,47 +1,56 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "sellinnate/warden",
+    "description": "Enterprise prompt sanitization & LLM guardrails for Laravel — deterministic-first, offline-by-default, EU-resident.",
     "keywords": [
-        ":vendor_name",
+        "sellinnate",
         "laravel",
-        ":package_slug"
+        "warden",
+        "llm",
+        "guardrails",
+        "prompt-injection",
+        "pii",
+        "ai-security",
+        "owasp-llm"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/sellinnate/warden",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Filippo Calabrese",
+            "email": "filippo@selli.io",
             "role": "Developer"
         }
     ],
     "require": {
-        "php": "^8.4",
-        "spatie/laravel-package-tools": "^1.16",
+        "php": "^8.3",
+        "ext-intl": "*",
+        "ext-mbstring": "*",
         "illuminate/contracts": "^11.0||^12.0||^13.0"
     },
     "require-dev": {
         "laravel/pint": "^1.14",
         "nunomaduro/collision": "^8.8",
         "larastan/larastan": "^3.0",
-        "orchestra/testbench": "^11.0.0||^10.0.0||^9.0.0",
+        "orchestra/testbench": "^9.0||^10.0||^11.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-arch": "^4.0",
         "pestphp/pest-plugin-laravel": "^4.0",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan-deprecation-rules": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.0",
-        "spatie/laravel-ray": "^1.35"
+        "phpstan/phpstan-phpunit": "^2.0"
+    },
+    "suggest": {
+        "prism-php/prism": "AI moderation & LLM-as-judge drivers (injection, NSFW)",
+        "openai-php/laravel": "Direct OpenAI moderation driver"
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "Sellinnate\\Warden\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/",
+            "Sellinnate\\Warden\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -63,10 +72,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "Sellinnate\\Warden\\WardenServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "Warden": "Sellinnate\\Warden\\Facades\\Warden"
             }
         }
     },
