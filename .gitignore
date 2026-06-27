@@ -30,5 +30,9 @@ phpstan.neon
 testbench.yaml
 /coverage
 TASKS.md
-/docs-site/.docmd-build
-/site
+
+# docmd documentation site build artifacts
+/docs-site/site
+/docs-site/node_modules
+/docs-site/.docmd
+/docs-site/package-lock.json

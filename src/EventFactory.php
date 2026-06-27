@@ -9,7 +9,6 @@ use Sellinnate\Warden\Events\InjectionDetected;
 use Sellinnate\Warden\Events\OutputBlocked;
 use Sellinnate\Warden\Events\PiiRedacted;
 use Sellinnate\Warden\Events\SecretBlocked;
-use Sellinnate\Warden\Support\ScanContext;
 use Sellinnate\Warden\ValueObjects\Detection;
 use Sellinnate\Warden\ValueObjects\ScanResult;
 
@@ -24,10 +23,9 @@ final class EventFactory
     /**
      * @return iterable<int, object>
      */
-    public static function forScanResult(ScanResult $result, ScanContext $context): iterable
+    public static function forScanResult(ScanResult $result, Direction $direction): iterable
     {
         $events = [];
-        $direction = $context->direction;
 
         switch ($result->scanner) {
             case 'injection':

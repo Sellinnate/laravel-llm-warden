@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 namespace Sellinnate\Warden;
 
+use Illuminate\Cache\CacheManager;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
+use Illuminate\Log\LogManager;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
+use Sellinnate\Warden\Audit\LogAuditor;
+use Sellinnate\Warden\Console\WardenInstallCommand;
+use Sellinnate\Warden\Console\WardenTestCommand;
+use Sellinnate\Warden\Contracts\Auditor;
 use Sellinnate\Warden\Detectors\Pii\DefaultDetectors;
 use Sellinnate\Warden\Detectors\Pii\PiiAnalyzer;
 use Sellinnate\Warden\Detectors\Pii\PiiAnonymizer;
@@ -29,6 +36,7 @@ use Sellinnate\Warden\Scanners\OutputLeakScanner;
 use Sellinnate\Warden\Scanners\PiiScanner;
 use Sellinnate\Warden\Scanners\SecretScanner;
 use Sellinnate\Warden\Support\ScannerRegistry;
+use Sellinnate\Warden\Support\VerdictCache;
 use Sellinnate\Warden\ValueObjects\Verdict;
 
 final class WardenServiceProvider extends ServiceProvider
@@ -55,7 +63,15 @@ final class WardenServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/warden.php', 'warden');
 
-        $this->app->singleton(PolicyRepository::class, function (Container $app): PolicyRepository {
+        self::registerBindings($this->app);
+    }
+
+    /**
+     * Register all Warden service bindings on a container. Reused by Guard::make().
+     */
+    public static function registerBindings(Container $app): void
+    {
+        $app->singleton(PolicyRepository::class, function (Container $app): PolicyRepository {
             /** @var Repository $config */
             $config = $app->make('config');
 
@@ -72,7 +88,7 @@ final class WardenServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(ScannerRegistry::class, function (Container $app): ScannerRegistry {
+        $app->singleton(ScannerRegistry::class, function (Container $app): ScannerRegistry {
             $registry = new ScannerRegistry($app);
 
             foreach (self::SCANNERS as $name => $class) {
@@ -84,17 +100,17 @@ final class WardenServiceProvider extends ServiceProvider
             return $registry;
         });
 
-        $this->app->singleton(
+        $app->singleton(
             InjectionManager::class,
             static fn (Container $app): InjectionManager => new InjectionManager($app),
         );
 
-        $this->app->singleton(
+        $app->singleton(
             ModerationManager::class,
             static fn (Container $app): ModerationManager => new ModerationManager($app),
         );
 
-        $this->app->singleton(NsfwScanner::class, function (Container $app): NsfwScanner {
+        $app->singleton(NsfwScanner::class, function (Container $app): NsfwScanner {
             /** @var array<int, array{category: string, label: string, score: float, patterns: array<int, string>}> $signatures */
             $signatures = require __DIR__.'/../resources/denylists/nsfw.php';
 
@@ -104,7 +120,7 @@ final class WardenServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(NormalizeScanner::class, function (Container $app): NormalizeScanner {
+        $app->singleton(NormalizeScanner::class, function (Container $app): NormalizeScanner {
             /** @var Repository $config */
             $config = $app->make('config');
 
@@ -114,7 +130,7 @@ final class WardenServiceProvider extends ServiceProvider
             return new NormalizeScanner($normalizeConfig);
         });
 
-        $this->app->singleton(SecretScanner::class, function (Container $app): SecretScanner {
+        $app->singleton(SecretScanner::class, function (Container $app): SecretScanner {
             /** @var Repository $config */
             $config = $app->make('config');
 
@@ -130,7 +146,7 @@ final class WardenServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(PiiScanner::class, function (Container $app): PiiScanner {
+        $app->singleton(PiiScanner::class, function (Container $app): PiiScanner {
             /** @var Repository $config */
             $config = $app->make('config');
 
@@ -150,7 +166,7 @@ final class WardenServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(OutputLeakScanner::class, function (Container $app): OutputLeakScanner {
+        $app->singleton(OutputLeakScanner::class, function (Container $app): OutputLeakScanner {
             /** @var Repository $config */
             $config = $app->make('config');
 
@@ -163,7 +179,7 @@ final class WardenServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(MarkdownDefangScanner::class, function (Container $app): MarkdownDefangScanner {
+        $app->singleton(MarkdownDefangScanner::class, function (Container $app): MarkdownDefangScanner {
             /** @var Repository $config */
             $config = $app->make('config');
 
@@ -173,7 +189,7 @@ final class WardenServiceProvider extends ServiceProvider
             return new MarkdownDefangScanner($allowed);
         });
 
-        $this->app->singleton(FormatScanner::class, function (Container $app): FormatScanner {
+        $app->singleton(FormatScanner::class, function (Container $app): FormatScanner {
             /** @var Repository $config */
             $config = $app->make('config');
 
@@ -182,7 +198,7 @@ final class WardenServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(Guard::class, function (Container $app): Guard {
+        $app->singleton(Guard::class, function (Container $app): Guard {
             /** @var Repository $config */
             $config = $app->make('config');
 
@@ -191,10 +207,51 @@ final class WardenServiceProvider extends ServiceProvider
                 $app->make(PolicyRepository::class),
                 $app->bound(Dispatcher::class) ? $app->make(Dispatcher::class) : null,
                 (int) $config->get('warden.max_input_bytes', 50_000),
+                self::makeAuditor($app, $config),
+                self::makeVerdictCache($app, $config),
             );
         });
 
-        $this->app->alias(Guard::class, 'warden');
+        $app->alias(Guard::class, 'warden');
+    }
+
+    private static function makeAuditor(Container $app, Repository $config): ?Auditor
+    {
+        if (! (bool) $config->get('warden.audit.enabled', true) || $config->get('warden.audit.store') === 'null') {
+            return null;
+        }
+
+        if ($app->bound(Auditor::class)) {
+            return $app->make(Auditor::class);
+        }
+
+        if (! $app->bound('log')) {
+            return null;
+        }
+
+        $channel = $config->get('warden.audit.channel');
+        /** @var LogManager $logManager */
+        $logManager = $app->make('log');
+        $logger = is_string($channel) ? $logManager->channel($channel) : $logManager->getLogger();
+
+        return new LogAuditor($logger, (bool) $config->get('warden.audit.store_raw', false));
+    }
+
+    private static function makeVerdictCache(Container $app, Repository $config): ?VerdictCache
+    {
+        if (! (bool) $config->get('warden.cache.enabled', false) || ! $app->bound('cache')) {
+            return null;
+        }
+
+        $store = $config->get('warden.cache.store');
+        /** @var CacheManager $cacheManager */
+        $cacheManager = $app->make('cache');
+
+        return new VerdictCache(
+            $cacheManager->store(is_string($store) ? $store : null),
+            (int) $config->get('warden.cache.ttl', 3600),
+            (string) $config->get('warden.cache.prefix', 'warden'),
+        );
     }
 
     public function boot(): void
@@ -207,12 +264,37 @@ final class WardenServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../resources/lang' => $this->langPath('vendor/warden'),
             ], 'warden-lang');
+
+            $this->commands([
+                WardenInstallCommand::class,
+                WardenTestCommand::class,
+            ]);
+
+            $this->registerAboutCommand();
         }
 
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'warden');
 
         $this->registerMiddleware();
         $this->registerRequestMacro();
+    }
+
+    private function registerAboutCommand(): void
+    {
+        if (! class_exists(AboutCommand::class)) {
+            return;
+        }
+
+        /** @var Repository $config */
+        $config = $this->app->make('config');
+
+        AboutCommand::add('Warden', fn (): array => [
+            'Default Policy' => (string) $config->get('warden.default_policy', 'balanced'),
+            'Injection Driver' => (string) $config->get('warden.injection.driver', 'deterministic'),
+            'Moderation Driver' => (string) $config->get('warden.moderation.driver', 'null'),
+            'Audit' => $config->get('warden.audit.enabled') ? 'enabled' : 'disabled',
+            'Verdict Cache' => $config->get('warden.cache.enabled') ? 'enabled' : 'disabled',
+        ]);
     }
 
     private function registerMiddleware(): void

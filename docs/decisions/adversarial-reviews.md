@@ -109,3 +109,26 @@ Guard↔failMode wiring, no SSRF (endpoints are operator config), no secret logg
 
 **Verdict:** resilient architecture sound after H1/H2 (coverage-critical) + M1–M3
 fixes. Cleared to build Phase 4.
+
+---
+
+## Phase 4 — Hardening & launch (2026-06-27)
+
+Reviewer brief: audit redaction leaks, cache safety/poisoning, `Guard::make`
+state, command injection, the static `registerBindings` refactor.
+
+The core guarantees were verified **sound**: `AuditRecord` exposes only
+type/scanner/score + a non-reversible hash (never raw text or detection
+evidence); the no-cache-vault rule is airtight; `registerBindings` keeps
+per-container singletons; xxh128 keying isn't a usable bypass.
+
+| ID | Severity | Finding | Resolution |
+|----|----------|---------|------------|
+| 1 | Medium | A cache hit returned before auditing/event dispatch → a repeated payload went invisible to the audit log / SIEM within the TTL. | **Fixed.** A cache hit now still calls the auditor and dispatches events. Regression in `Phase4ReviewRegressionTest`. |
+| 2 | Medium | `VerdictCache` stored the whole Verdict, persisting raw `originalText` (and masked evidence) to the cache store. | **Fixed.** `Verdict::forCache()` strips `originalText`, per-detection evidence, and (for blocked verdicts) `sanitizedText`; only the decision/scores/types are cached. Regression test added. |
+| 3 | Low | `warden:test` printed untrusted text via `$this->line()` → terminal-escape / formatter-tag injection / crash. | **Fixed.** Control bytes stripped and formatter tags escaped before printing. Regression test added. |
+| 4 | Low | `Guard::make()` only checked the container class, then `require`d a config that calls `env()` → raw fatal if `illuminate/support` absent. | **Fixed.** Guard clause now also checks `Repository` and `function_exists('env')`. |
+| 5 | Low | `inspectChunks()` `TypeError`'d the whole batch on a non-string element. | **Fixed.** Non-strings are skipped (preserving keys). Regression test added. |
+
+**Verdict:** Phase 4 sound to merge; package ready for a v1.0 tag. `cache.enabled`
+and `audit.store_raw` ship safe-by-default (both off).
