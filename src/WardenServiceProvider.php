@@ -18,9 +18,13 @@ use Sellinnate\Warden\Http\Middleware\WardenMiddleware;
 use Sellinnate\Warden\Managers\InjectionManager;
 use Sellinnate\Warden\Managers\ModerationManager;
 use Sellinnate\Warden\Policies\PolicyRepository;
+use Sellinnate\Warden\Scanners\DeanonymizeScanner;
+use Sellinnate\Warden\Scanners\FormatScanner;
 use Sellinnate\Warden\Scanners\InjectionScanner;
+use Sellinnate\Warden\Scanners\MarkdownDefangScanner;
 use Sellinnate\Warden\Scanners\NormalizeScanner;
 use Sellinnate\Warden\Scanners\NsfwScanner;
+use Sellinnate\Warden\Scanners\OutputLeakScanner;
 use Sellinnate\Warden\Scanners\PiiScanner;
 use Sellinnate\Warden\Scanners\SecretScanner;
 use Sellinnate\Warden\Support\ScannerRegistry;
@@ -40,6 +44,10 @@ final class WardenServiceProvider extends ServiceProvider
         'secret' => SecretScanner::class,
         'pii' => PiiScanner::class,
         'nsfw' => NsfwScanner::class,
+        'deanonymize' => DeanonymizeScanner::class,
+        'output-leak' => OutputLeakScanner::class,
+        'markdown-defang' => MarkdownDefangScanner::class,
+        'format' => FormatScanner::class,
     ];
 
     public function register(): void
@@ -128,6 +136,38 @@ final class WardenServiceProvider extends ServiceProvider
                     (string) $config->get('warden.pii.hash_salt', ''),
                 ),
                 $operators,
+            );
+        });
+
+        $this->app->singleton(OutputLeakScanner::class, function (Container $app): OutputLeakScanner {
+            /** @var Repository $config */
+            $config = $app->make('config');
+
+            $canary = $config->get('warden.output.canary');
+            $systemPrompt = $config->get('warden.output.system_prompt');
+
+            return new OutputLeakScanner(
+                is_string($canary) ? $canary : null,
+                is_string($systemPrompt) ? $systemPrompt : null,
+            );
+        });
+
+        $this->app->singleton(MarkdownDefangScanner::class, function (Container $app): MarkdownDefangScanner {
+            /** @var Repository $config */
+            $config = $app->make('config');
+
+            /** @var array<int, string> $allowed */
+            $allowed = (array) $config->get('warden.output.allowed_domains', []);
+
+            return new MarkdownDefangScanner($allowed);
+        });
+
+        $this->app->singleton(FormatScanner::class, function (Container $app): FormatScanner {
+            /** @var Repository $config */
+            $config = $app->make('config');
+
+            return new FormatScanner(
+                (bool) $config->get('warden.output.require_json', false),
             );
         });
 

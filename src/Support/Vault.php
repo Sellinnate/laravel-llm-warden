@@ -80,6 +80,43 @@ final class Vault
     }
 
     /**
+     * Restore placeholders and report the byte spans of the inserted originals
+     * in the resulting text, so downstream scanners can treat them as trusted
+     * (the user's own data) and not re-redact them.
+     *
+     * @return array{text: string, spans: array<int, array{0: int, 1: int}>}
+     */
+    public function restoreWithSpans(string $text): array
+    {
+        if ($this->entries === [] || preg_match_all('/<[A-Z][A-Z0-9_]*_\d+>/', $text, $matches, PREG_OFFSET_CAPTURE) === false) {
+            return ['text' => $text, 'spans' => []];
+        }
+
+        $out = '';
+        $cursor = 0;
+        $spans = [];
+
+        foreach ($matches[0] as [$placeholder, $pos]) {
+            $out .= substr($text, $cursor, $pos - $cursor);
+
+            if (isset($this->entries[$placeholder])) {
+                $value = $this->entries[$placeholder];
+                $start = strlen($out);
+                $out .= $value;
+                $spans[] = [$start, $start + strlen($value)];
+            } else {
+                $out .= $placeholder;
+            }
+
+            $cursor = $pos + strlen($placeholder);
+        }
+
+        $out .= substr($text, $cursor);
+
+        return ['text' => $out, 'spans' => $spans];
+    }
+
+    /**
      * @return array<string, string>
      */
     public function all(): array
