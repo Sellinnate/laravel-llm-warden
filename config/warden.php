@@ -31,6 +31,10 @@ return [
     'injection' => [
         'driver' => env('WARDEN_INJECTION_DRIVER', 'deterministic'),
 
+        // For layered drivers (llm-judge): only escalate to the AI judge when the
+        // deterministic score is below this (cheap-first).
+        'escalate_below' => 0.5,
+
         'deterministic' => [
             // Risk score added per matched signature, capped at 1.0.
             'signal_weight' => 0.5,

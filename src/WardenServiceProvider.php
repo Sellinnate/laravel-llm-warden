@@ -14,6 +14,7 @@ use Illuminate\Support\ServiceProvider;
 use Sellinnate\Warden\Detectors\Pii\DefaultDetectors;
 use Sellinnate\Warden\Detectors\Pii\PiiAnalyzer;
 use Sellinnate\Warden\Detectors\Pii\PiiAnonymizer;
+use Sellinnate\Warden\Enums\FailMode;
 use Sellinnate\Warden\Http\Middleware\WardenMiddleware;
 use Sellinnate\Warden\Managers\InjectionManager;
 use Sellinnate\Warden\Managers\ModerationManager;
@@ -58,7 +59,17 @@ final class WardenServiceProvider extends ServiceProvider
             /** @var Repository $config */
             $config = $app->make('config');
 
-            return new PolicyRepository((string) $config->get('warden.default_policy', 'balanced'));
+            /** @var array<string, mixed> $failModeConfig */
+            $failModeConfig = (array) $config->get('warden.fail_mode', []);
+            $overrides = [];
+            foreach ($failModeConfig as $scanner => $mode) {
+                $overrides[$scanner] = FailMode::fromString(is_string($mode) ? $mode : null);
+            }
+
+            return new PolicyRepository(
+                (string) $config->get('warden.default_policy', 'balanced'),
+                $overrides,
+            );
         });
 
         $this->app->singleton(ScannerRegistry::class, function (Container $app): ScannerRegistry {
